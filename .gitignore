@@ -126,6 +126,3 @@ dist
 .yarn/install-state.gz
 .pnp.*
  
-# compiled builds
- release-builds/
- release-builds

@@ -42,7 +42,7 @@ function createMainWindow() {
     title: "Chris's Electron App",
     width: isDev ? 415 : 500,
     height: 600,
-    icon: `${__dirname}/assets/icons/Icon_256x256.png`,
+    icon: `${__dirname}/assets/icons/treehouselogo-main.png`,
     resizable: isDev ? true : false,
     backgroundColor: "hsla(230, 50%, 50%,0.5)",
     webPreferences: {
@@ -71,7 +71,7 @@ function createAboutWindow() {
     title: "About ImageShrink",
     width: 300,
     height: 300,
-    icon: `${__dirname}/assets/icons/Icon_256x256.png`,
+    icon: `${__dirname}/assets/icons/treehouselogo-main.png`,
     resizable: false,
     backgroundColor: "white",
   });
@@ -96,6 +96,7 @@ app.on("ready", () => {
   globalShortcut.register(isMac ? "Command+Alt+I" : "Ctrl+Shift+I", () =>
     mainWindow.toggleDevTools()
   );
+  globalShortcut.register("CmdOrCtrl+Q", () => app.quit());
 
   mainWindow.on("ready", () => (mainWindow = null));
 });

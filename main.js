@@ -1,14 +1,37 @@
+// Require core node modules
+const path = require("path");
+const os = require("os");
+
 // Require the electron module
-const { app, BrowserWindow, Menu, globalShortcut } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  Menu,
+  globalShortcut,
+  ipcMain,
+  shell,
+  screen,
+} = require("electron");
+
+// Require dependencies
+const imagemin = require("imagemin");
+const imageminMozjpeg = require("imagemin-mozjpeg");
+const imageminPngquant = require("imagemin-pngquant");
+const slash = require("slash"); // handles forward slash conversion on windows
+const { electron } = require("process");
+const log = require("electron-log");
 
 // PRODUCTION v DEVELOPMENT SETINGS
-process.env.NODE_ENV = "development";
+process.env.NODE_ENV = "production";
 const isDev = process.env.NODE_ENV !== "production" ? true : false;
 const isMac = process.platform === "darwin" ? true : false;
 
 // Defined in global scope to enable global access
 let mainWindow;
 let aboutWindow;
+
+// Empty variable to capture dimensions of main screen
+let mainScreen;
 
 /**
  * Create new browser window
@@ -17,17 +40,26 @@ let aboutWindow;
 function createMainWindow() {
   mainWindow = new BrowserWindow({
     title: "Chris's Electron App",
-    width: 500,
+    width: isDev ? 415 : 500,
     height: 600,
     icon: `${__dirname}/assets/icons/Icon_256x256.png`,
     resizable: isDev ? true : false,
-    backgroundColor: "white",
+    backgroundColor: "hsla(230, 50%, 50%,0.5)",
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+    x: 0,
+    y: mainScreen.size.height,
   });
 
   // mainWindow.loadURL("https://twitter.com");
   mainWindow.loadURL(`file://${__dirname}/app/index.html`);
   // loadFile and loadURL will achieve same outcome
   // mainWindow.loadFile("./app/index.html");
+  if (isDev) {
+    mainWindow.webContents.openDevTools({ mode: "detach" });
+  }
 }
 
 /**
@@ -51,6 +83,10 @@ function createAboutWindow() {
 
 // Create new GUI window when ready event occurs
 app.on("ready", () => {
+  // Captures primary screen dimensions on 'ready' event
+  mainScreen = screen.getPrimaryDisplay();
+
+  // Creates main window GUI
   createMainWindow();
 
   const mainMenu = Menu.buildFromTemplate(menu);
@@ -119,9 +155,31 @@ const menu = [
     : []),
 ];
 
-// if (isMac) {
-//   menu.unshift({ role: "appMenu" });
-// }
+ipcMain.on("image:minimize", (e, options) => {
+  options.dest = path.join(os.homedir(), "imageshrink");
+  shrinkImage(options);
+});
+
+async function shrinkImage({ imgPath, quality, dest }) {
+  try {
+    const pngQuality = quality / 100;
+
+    const files = await imagemin([slash(imgPath)], {
+      destination: dest,
+      plugins: [
+        imageminMozjpeg({ quality }),
+        imageminPngquant({ quality: [pngQuality, pngQuality] }),
+      ],
+    });
+
+    log.info(files);
+    shell.openPath(dest);
+
+    mainWindow.webContents.send("image:done");
+  } catch (err) {
+    log.error(err);
+  }
+}
 
 // Account for variations between operating systems
 app.on("window-all-closed", () => {

@@ -1,6 +1,7 @@
 // Require core node modules
 const path = require("path");
 const os = require("os");
+const fs = require("fs");
 
 // Require the electron module
 const {
@@ -22,7 +23,7 @@ const { electron } = require("process");
 const log = require("electron-log");
 
 // PRODUCTION v DEVELOPMENT SETINGS
-process.env.NODE_ENV = "production";
+process.env.NODE_ENV = "development";
 const isDev = process.env.NODE_ENV !== "production" ? true : false;
 const isMac = process.platform === "darwin" ? true : false;
 
@@ -101,22 +102,6 @@ app.on("ready", () => {
   mainWindow.on("ready", () => (mainWindow = null));
 });
 
-// // Defining menu / toolbar settings
-// const menu = [
-//   ...(isMac ? [{ role: "appMenu" }] : []),
-//   {
-//     label: "File",
-//     submenu: [
-//       {
-//         label: "Quit", // label describes behaviour
-//         // accelerator: isMac ? "Command+W" : "Ctrl+W",
-//         accelerator: "CmdOrCtrl+w", // shortcut
-//         click: () => app.quit(), // on-click functionality
-//       },
-//     ],
-//   },
-// ];
-
 // Defining menu / toolbar settings
 const menu = [
   ...(isMac
@@ -173,8 +158,20 @@ async function shrinkImage({ imgPath, quality, dest }) {
       ],
     });
 
-    log.info(files);
+    // log.info(files);
     shell.openPath(dest);
+    // console.log("Files", files[0].destinationPath);
+    // console.log(slash(imgPath));
+
+    let outputFileSize;
+    fs.stat(slash(files[0].destinationPath), (err, stats) => {
+      if (err) {
+        outputFileSize = `Conversion failed`;
+      } else {
+        outputFileSize = `${stats.size / 1000}kb`;
+      }
+      mainWindow.webContents.send("image:outputFileSize", outputFileSize);
+    });
 
     mainWindow.webContents.send("image:done");
   } catch (err) {
